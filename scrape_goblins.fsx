@@ -47,7 +47,7 @@ let updateGoblinData =
         
         let goblins = 
             guildResult.data.members
-            |> List.sortBy (fun (gobo : Goblin) -> gobo.name.ToLower()) // Sort by lowercase, because of sheets 
+            |> List.sortBy (fun (gobo : Goblin) -> gobo.name.ToLower()) // Sort by lowercase because of reasons 
             |> List.fold (fun (allGoblinsString : string) (gobo : Goblin) ->
                 let goboString = sprintf "%s%c%d%c%d" gobo.name tabSeparator gobo.skulls tabSeparator gobo.honor
                 sprintf "%s%s%s" allGoblinsString goboString System.Environment.NewLine
