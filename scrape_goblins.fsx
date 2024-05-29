@@ -48,7 +48,7 @@ type Goblin = {
     leaderAHonor : int
     leaderBHonor : int
     leaderCHonor : int
-    amiest : string list list 
+    armies : string list list 
 }
 
 type GoblinData = {
@@ -90,11 +90,12 @@ let updateGoblinData =
         |> Async.Parallel
         |> Async.RunSynchronously
         |> List.ofArray
-
-
-    let goblins = 
-        goblinData
         |> List.map (fun f -> f.data) // goblins
+    goblinData
+
+let persistGoblinStats (goblins : Goblin list) =
+    let sgoblins = 
+        goblins
         |> List.sortBy (fun (gobo : Goblin) -> gobo.name.ToLower()) // Sort by lowercase because of reasons 
         |> List.fold (fun (allGoblinsString : string) (gobo : Goblin) ->
             let honor = gobo.leaderAHonor + gobo.leaderBHonor + gobo.leaderCHonor
@@ -102,13 +103,60 @@ let updateGoblinData =
             sprintf "%s%s%s" allGoblinsString goboString System.Environment.NewLine
         ) ""
     let file = File.CreateText(guildFilePath)
-    file.Write(goblins.ToCharArray())
+    file.Write(sgoblins.ToCharArray())
     file.Close()
 
     printfn "%s" guildFilePath
 
+let persistGoblinLeaderStats (goblinData : Goblin list) =
+    let goblinLeaders = 
+        goblinData
+        |> List.map (fun goblin -> 
+            let goblinLeaders : (string * int) list =
+                goblin.armies 
+                |> List.map List.head // First line in armylist is the leader
+                |> List.map (fun sLeader -> 
+                    let sArr = sLeader.Split(';') 
+                    sArr[0], sArr[2] |> int) // leadername - level tuple
+            goblin.name, goblinLeaders)
+    let allLeaders = 
+        goblinLeaders
+        |> List.map snd // only leaders
+        |> List.concat // all as a long list
+        |> List.map fst // only leader name
+        |> List.distinct // only unique names
+        |> List.sort // alphabetically
+
+    let leaderStats = 
+        goblinLeaders
+        |> List.map (fun ((goblinName : string), leaderList) -> 
+            let leaderDictionary = leaderList |> dict
+            let leadersString = 
+                allLeaders
+                |> List.fold (fun (sLeaders : string) (aLeader : string) -> 
+                    let leaderLevel = 
+                        match leaderDictionary.ContainsKey(aLeader) with
+                        | true -> leaderDictionary[aLeader]
+                        | false -> -1
+                    sprintf "%s%d%c" sLeaders leaderLevel tabSeparator
+                ) ""
+            sprintf "%s%c%s%s" goblinName tabSeparator leadersString System.Environment.NewLine)
+        |> List.fold (+) ""
+    let leaderHeaders = (allLeaders 
+        |> List.map (fun sLeader -> sprintf "%s%c" sLeader tabSeparator) 
+        |> List.fold (+) "")
+    let statsWithHeader : string = sprintf "Goblin%c%s%s%s" tabSeparator leaderHeaders System.Environment.NewLine leaderStats
+
+    let file = File.CreateText(leadersFilePath)
+    file.Write(statsWithHeader.ToCharArray())
+    file.Close()
+
+    printfn "%s" leadersFilePath
+
 // Create data directory if it does not exists
 ensureDataDirectory
 // Fetch goblin data from internets to directory
-updateGoblinData 
+let (goblinDataList : Goblin list) = updateGoblinData 
+persistGoblinStats goblinDataList
+persistGoblinLeaderStats goblinDataList
 
