@@ -143,7 +143,7 @@ let persistGoblinLeaderStats (goblinData : Goblin list) =
             sprintf "%s%c%s%s" goblinName tabSeparator leadersString System.Environment.NewLine)
         |> List.fold (+) ""
     let leaderHeaders = (allLeaders 
-        |> List.map (fun sLeader -> sprintf "%s%c" sLeader tabSeparator) 
+        |> List.map (fun sLeader -> sprintf "%s%c" (sLeader.Replace("Leader","")) tabSeparator) 
         |> List.fold (+) "")
     let statsWithHeader : string = sprintf "Goblin%c%s%s%s" tabSeparator leaderHeaders System.Environment.NewLine leaderStats
 
